@@ -12,6 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+import requests # <--- THIS LINE WAS MISSING. IT IS NOW FIXED.
 
 # --- Configuration ---
 URL = "https://www.viagogo.com/Festival-Tickets/International-Festivals/Tomorrowland-Festival-Tickets/E-156659906?quantity=2"
@@ -19,10 +20,6 @@ PRICE_THRESHOLD = 210.0
 
 # --- Environment-Specific Setup ---
 IS_ON_RENDER = os.environ.get("RUNNING_ON_RENDER", "false").lower() == "true"
-
-# --- IMPORTANT: FOR LOCAL MAC TESTING ONLY ---
-# Paste the path to the chromedriver file you downloaded.
-# This will be IGNORED when running on Render.
 YOUR_MAC_DRIVER_PATH = "/Users/yourname/path/to/your/chromedriver" 
 
 # JSONBin.io Configuration
@@ -49,14 +46,12 @@ def get_current_price(url):
     
     try:
         if IS_ON_RENDER:
-            # --- RENDER SETUP ---
             print("Running on Render. Using automatic driver detection.")
             options.add_argument("--headless")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
             driver = uc.Chrome(options=options)
         else:
-            # --- LOCAL MAC SETUP ---
             print(f"Running locally. Using manual driver path: {YOUR_MAC_DRIVER_PATH}")
             if "yourname/path" in YOUR_MAC_DRIVER_PATH:
                  raise Exception("Please update the 'YOUR_MAC_DRIVER_PATH' variable in the script before running locally.")
@@ -119,8 +114,6 @@ def get_current_price(url):
             driver.quit()
             print("Browser closed.")
             
-# The functions below (get_last_price, send_email, update_jsonbin, main) are the same as before.
-# No changes are needed for them.
 def get_last_price_from_jsonbin():
     if not all([JSONBIN_API_KEY, JSONBIN_BIN_ID]): return None
     print("Attempting to retrieve last known price from JSONBin.io...")
@@ -193,8 +186,9 @@ def main():
     update_jsonbin(current_price)
     print("Checking against price threshold...")
     if current_price <= PRICE_THRESHOLD:
-        print(f"Action: Price (€{current_price:.2f}) is at or below the €{PRICE_THRESHOLD:.2f} threshold.")
-        send_email_alert(current_price)
+        print(f"Action: Price (€"I think this is the final step, let's try again!"
+        f"{current_price:.2f}) is at or below the €{PRICE_THRESHOLD:.2f} threshold.")
+        send_email_alert(price)
     else:
         print(f"Action: Price (€{current_price:.2f}) is higher than the €{PRICE_THRESHOLD:.2f} threshold. No email sent.")
     print("--- Price Check Finished ---")
