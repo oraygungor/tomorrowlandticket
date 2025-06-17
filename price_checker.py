@@ -12,7 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-import requests # <--- THIS LINE WAS MISSING. IT IS NOW FIXED.
+import requests
 
 # --- Configuration ---
 URL = "https://www.viagogo.com/Festival-Tickets/International-Festivals/Tomorrowland-Festival-Tickets/E-156659906?quantity=2"
@@ -20,6 +20,10 @@ PRICE_THRESHOLD = 210.0
 
 # --- Environment-Specific Setup ---
 IS_ON_RENDER = os.environ.get("RUNNING_ON_RENDER", "false").lower() == "true"
+
+# --- IMPORTANT: FOR LOCAL MAC TESTING ONLY ---
+# Paste the path to the chromedriver file you downloaded.
+# This will be IGNORED when running on Render.
 YOUR_MAC_DRIVER_PATH = "/Users/yourname/path/to/your/chromedriver" 
 
 # JSONBin.io Configuration
@@ -46,12 +50,14 @@ def get_current_price(url):
     
     try:
         if IS_ON_RENDER:
+            # --- RENDER SETUP ---
             print("Running on Render. Using automatic driver detection.")
             options.add_argument("--headless")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
             driver = uc.Chrome(options=options)
         else:
+            # --- LOCAL MAC SETUP ---
             print(f"Running locally. Using manual driver path: {YOUR_MAC_DRIVER_PATH}")
             if "yourname/path" in YOUR_MAC_DRIVER_PATH:
                  raise Exception("Please update the 'YOUR_MAC_DRIVER_PATH' variable in the script before running locally.")
@@ -170,28 +176,38 @@ def update_jsonbin(price):
         print(f"FAILURE: Error updating JSONBin.io: {e}")
 
 def main():
+    """Main function to run the price checker."""
     print(f"--- Running Price Check at {datetime.now()} ---")
+    
     last_price = get_last_price_from_jsonbin()
     current_price = get_current_price(URL)
+    
     if current_price is None:
         print("Execution stopped: Could not retrieve the current price.")
         print("--- Price Check Finished (with errors) ---")
         return
+
+    # Compare prices and log the change
     if last_price is not None:
         if current_price == last_price:
             print(f"Status: Price has not changed from the last check (€{current_price:.2f}).")
         else:
             change_direction = "dropped" if current_price < last_price else "increased"
             print(f"Status: Price has {change_direction}! Previous: €{last_price:.2f}, Current: €{current_price:.2f}")
+
+    # Update JSONBin with the new price
     update_jsonbin(current_price)
+    
+    # Check if the price is below the threshold and send an alert
     print("Checking against price threshold...")
     if current_price <= PRICE_THRESHOLD:
-        print(f"Action: Price (€"I think this is the final step, let's try again!"
-        f"{current_price:.2f}) is at or below the €{PRICE_THRESHOLD:.2f} threshold.")
-        send_email_alert(price)
+        print(f"Action: Price (€{current_price:.2f}) is at or below the €{PRICE_THRESHOLD:.2f} threshold.")
+        send_email_alert(current_price)
     else:
         print(f"Action: Price (€{current_price:.2f}) is higher than the €{PRICE_THRESHOLD:.2f} threshold. No email sent.")
+        
     print("--- Price Check Finished ---")
+
 
 if __name__ == "__main__":
     main()
